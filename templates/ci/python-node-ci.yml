@@ -1,0 +1,124 @@
+# CI Template — Python Backend + Node Frontend
+# Copy to your project's .github/workflows/ci.yml and customize the variables below.
+#
+# Pattern: PRs and feature branches → tests only. Push to main → tests (deploy is separate).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ═══════════════════════════════════════
+  # PYTHON BACKEND
+  # ═══════════════════════════════════════
+  backend-lint:
+    name: Backend Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"             # ← customize
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: pip install ruff
+      - name: Lint with Ruff
+        run: ruff check . --select=E,F,W --ignore=E501
+
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    needs: backend-lint
+    # Uncomment if your tests need PostgreSQL:
+    # services:
+    #   postgres:
+    #     image: postgres:15
+    #     env:
+    #       POSTGRES_USER: postgres
+    #       POSTGRES_PASSWORD: postgres
+    #       POSTGRES_DB: test_db
+    #     ports: ["5432:5432"]
+    #     options: >-
+    #       --health-cmd="pg_isready -U postgres"
+    #       --health-interval=10s
+    #       --health-timeout=5s
+    #       --health-retries=5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+      SECRET_KEY: ci-test-secret
+      DEBUG: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"             # ← customize
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: pip install pytest ruff
+      - name: Run tests
+        run: pytest -v --tb=short
+
+  # ═══════════════════════════════════════
+  # NODE FRONTEND
+  # ═══════════════════════════════════════
+  frontend-lint:
+    name: Frontend Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20                   # ← customize
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20                   # ← customize
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20                   # ← customize
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test -- --passWithNoTests
