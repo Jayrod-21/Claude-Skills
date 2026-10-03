@@ -10,7 +10,7 @@
 
 ## Security Requirements
 
-The following 10 items MUST be addressed before any deployment. When implementing features, reference this checklist and note which items are satisfied by the implementation.
+The following 11 items MUST be addressed before any deployment. When implementing features, reference this checklist and note which items are satisfied by the implementation.
 
 ### 1. Authentication
 - Use bcrypt (cost factor >= 12) or argon2 for password hashing — never store plain-text passwords
@@ -60,6 +60,11 @@ The following 10 items MUST be addressed before any deployment. When implementin
 - Run `npm audit` / `pip-audit` in CI pipeline
 - Review and update dependencies monthly
 - Pin major versions to prevent surprise breaking changes
+
+### 11. Deploy Priorities (the first three things on any deployment)
+- Email verification: no account is active until its email address is confirmed
+- MFA (multi-factor authentication): offered at minimum, required for admin and privileged roles
+- Invite codes or rate-limited registration: open sign-up is never left unthrottled
 
 ---
 
